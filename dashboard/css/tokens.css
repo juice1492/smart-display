@@ -1,4 +1,4 @@
-/* Design tokens. Target: Android WebView 106 — no nesting, no color-mix(), no oklch(), no dvh. */
+/* Design tokens. Target: Android WebView 106. */
 :root {
   /* paper + ink */
   --paper: #F2EEE6;

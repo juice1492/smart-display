@@ -21,6 +21,13 @@
     App.emit('time');
     App.rerender();
   };
+  // Used when the device clock is still in 1969. `date` is the server's notion of now.
+  App.setAnchor = function (date) {
+    if (!date || isNaN(date.getTime())) return;
+    offset = date.getTime() - Date.now();
+    lastMin = -1;
+    App.emit('time');
+  };
   App.dayStart = function (d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
   App.addDays = function (d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; };
   App.sameDay = function (a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); };
@@ -96,7 +103,7 @@
     if (App.calMode === 'empty') list = list.filter(function (e) { return e.allDay || !App.sameDay(e.start, today); });
     return list;
   };
-  App.isFamily = function (e) { return e.people.length >= D.people.length; };
+  App.isFamily = function (e) { return !!(e.people && D.people.length && e.people.length >= D.people.length); };
   App.evColor = function (e) { return App.isFamily(e) ? D.family : App.person(e.people[0]); };
   App.timedOn = function (day, pid) {
     var s = App.dayStart(day), e = App.addDays(s, 1);
@@ -313,8 +320,9 @@
     }, delay);
   }
   function markStale() {
-    Object.keys(App.views).forEach(function (k) { if (k !== App.current) App.views[k]._dirty = true; });
-    refreshStale(1500);
+    Object.keys(App.views).forEach(function (k) { App.views[k]._dirty = true; });
+    if (App.current && App.views[App.current]) App.rerender();
+    refreshStale(400);
   }
   App.on('data', markStale);
   App.on('time', markStale);
@@ -402,15 +410,6 @@
   var idleSec = 0;
   function onIdleTick() {
     idleSec++;
-    var blocked = $('#takeover').classList.contains('is-open');
-    if (App.mode === 'nightdash' && idleSec >= 20) { App.setMode('night'); return; }
-    if (App.mode !== 'day' || blocked) return;
-    if (idleSec === App.idle.home && App.current !== 'home') { App.closeSheet(); App.go('home'); }
-    if (idleSec >= App.idle.ambient) {
-      App.closeSheet();
-      App.go('home');
-      App.setMode(App.isNight() ? 'night' : 'ambient');
-    }
   }
   App.resetIdle = function () { idleSec = 0; };
 
@@ -459,15 +458,47 @@
     tick();
     setInterval(tick, 1000);
     App.emit('ready');
+    App.paintStatus();
     refreshStale(1500);
-    setTimeout(function () { App.toast('Tip: press and hold the <b>clock</b> in the sidebar for demo controls', { ms: 6000, icon: 'bolt' }); }, 1200);
   };
+  App.paintStatus = function () {
+    var el = $('#frameStatus');
+    if (!el || !D.sources) return;
+    var cal = D.sources.calendar || { source: 'sample', updated: null };
+    var wx = D.sources.weather || { source: 'sample' };
+    var shop = D.sources.shopping || { source: 'sample' };
+    var live = cal.source === 'live';
+    el.classList.toggle('is-live', live);
+    var text = 'calendar ' + cal.source;
+    if (wx.source !== 'live') text += ' · weather sample';
+    if (shop.source !== 'live') text += ' · shopping sample';
+    if (cal.updated) {
+      var when = App.fmt.time(cal.updated);
+      if (!App.sameDay(cal.updated, App.now())) when = App.fmt.monthShort(cal.updated) + ' ' + cal.updated.getDate() + ' ' + when;
+      text += ' · ' + when;
+    }
+    el.innerHTML = '<i></i><span>' + text + '</span>';
+  };
+  App.openEvent = function (e) {
+    if (!e) return;
+    App.sheet(
+      '<div class="sheet-pad"><div class="label">' + App.fmt.day(e.start) + ' · ' + App.fmt.month(e.start) + ' ' + e.start.getDate() + '</div>' +
+      '<h2 class="serif sheet-h">' + App.esc(e.title) + '</h2>' +
+      '<p class="sheet-p">' + (e.allDay ? 'All day' : App.fmt.range(e.start, e.end)) + (e.loc ? ' · ' + App.esc(e.loc) : '') + '</p>' +
+      (e.notes ? '<p class="serif" style="font-size:32px;line-height:1.25">' + App.esc(e.notes) + '</p>' : '') +
+      '</div>'
+    );
+  };
+  App.on('data', function () { App.paintStatus(); });
+  App.on('minute', function () { App.paintStatus(); });
   // Data files and the photo manifest load before first paint. A hung request must not
   // leave the frame blank: loadFrameData times out and falls back on its own.
   function boot() {
-    var ready = (typeof window.loadFrameData === 'function') ? window.loadFrameData() : Promise.resolve();
-    ready.then(function () { App.start(); }, function () { App.start(); });
+    App.start();
+    if (typeof window.loadFrameData !== 'function') return;
+    window.loadFrameData().then(function () { App.emit('data'); }, function () { App.emit('data'); });
   }
+  // Views register as later modules evaluate. Defer boot until that has finished.
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  else setTimeout(boot, 0);
 })();
