@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {
   adoptCalendar, adoptWeather, adoptShopping,
   columnsFor, eventsInColumn, eventsOverlapping,
-  clockAnchor, parseWhen
+  clockAnchor, parseWhen, parseGenerated, formatNyTime, formatNyStatus
 } from '../js/parse.js';
 
 // The frame's calendar.json. Times have no offset. people is empty.
@@ -251,6 +251,63 @@ test('Open-Meteo Fahrenheit New York weather is accepted', () => {
   const celsius = JSON.parse(JSON.stringify(raw));
   celsius.current_units.temperature_2m = '°C';
   assert.equal(adoptWeather(celsius).ok, false);
+  assert.deepEqual(live.weather.days, []);
+});
+
+test('daily forecast is the next five days and is optional', () => {
+  const raw = JSON.parse(fs.readFileSync(new URL('../examples/data/weather.json', import.meta.url), 'utf8'));
+  const withDaily = JSON.parse(JSON.stringify(raw));
+  withDaily.daily_units = { temperature_2m_max: '°F', temperature_2m_min: '°F' };
+  withDaily.daily = {
+    time: ['2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29'],
+    temperature_2m_max: [70, 68, 65, 60, 58, 55],
+    temperature_2m_min: [50, 48, 46, 44, 42, 40],
+    weather_code: [0, 1, 3, 61, 2, 0],
+    precipitation_probability_max: [0, 10, 19, 40, 80, null]
+  };
+  const live = adoptWeather(withDaily);
+  assert.equal(live.ok, true);
+  assert.equal(live.weather.days.length, 6);
+  assert.equal(live.weather.days[0].d, 24);
+  const next = live.weather.days.slice(1, 6);
+  assert.equal(next.length, 5);
+  assert.deepEqual(next.map((d) => d.hi), [68, 65, 60, 58, 55]);
+  assert.equal(next[2].code, 61);
+  assert.equal(next[0].precip, 10);
+  assert.equal(next[1].precip, 19);
+  assert.equal(next[2].precip, 40);
+  assert.equal(next[4].precip, null);
+  assert.equal(live.weather.current.temp, raw.current.temperature_2m);
+
+  const missing = JSON.parse(JSON.stringify(raw));
+  delete missing.daily;
+  const noDaily = adoptWeather(missing);
+  assert.equal(noDaily.ok, true);
+  assert.deepEqual(noDaily.weather.days, []);
+
+  const broken = JSON.parse(JSON.stringify(raw));
+  broken.daily = { time: 'nope' };
+  const still = adoptWeather(broken);
+  assert.equal(still.ok, true);
+  assert.equal(still.weather.hours.length, live.weather.hours.length);
+  assert.deepEqual(still.weather.days, []);
+
+  const cDaily = JSON.parse(JSON.stringify(withDaily));
+  cDaily.daily_units.temperature_2m_max = '°C';
+  const hidden = adoptWeather(cDaily);
+  assert.equal(hidden.ok, true);
+  assert.deepEqual(hidden.weather.days, []);
+});
+
+test('footer time follows calendar generated in America/New_York', () => {
+  const later = parseGenerated('2026-10-24T14:45:00-04:00');
+  const earlier = parseGenerated('2026-10-24T14:30:00-04:00');
+  assert.equal(formatNyTime(later), '2:45 PM');
+  assert.equal(formatNyTime(earlier), '2:30 PM');
+  const now = new Date('2026-10-24T18:00:00-04:00');
+  assert.equal(formatNyStatus(later, now), '2:45 PM');
+  const yesterday = parseGenerated('2026-10-23T14:45:00-04:00');
+  assert.equal(formatNyStatus(yesterday, now), 'Oct 23 2:45 PM');
 });
 
 test('parseWhen accepts the no-offset form used on the server', () => {

@@ -36,6 +36,51 @@ export function parseHttpDate(v) {
   return isNaN(p) ? null : new Date(p);
 }
 
+var NY_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function nyDateParts(date) {
+  var fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit', hourCycle: 'h23'
+  });
+  var map = {};
+  var parts = fmt.formatToParts(date);
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i].type !== 'literal') map[parts[i].type] = parts[i].value;
+  }
+  var month = +map.month;
+  return { y: +map.year, m: month, d: +map.day, mon: NY_MONTHS[month - 1] || '' };
+}
+
+// Footer clock. Always America/New_York, so an offset stamp like
+// 2026-10-24T14:45:00-04:00 reads 2:45 PM even if the device zone is wrong.
+export function formatNyTime(date) {
+  if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+  var fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric', minute: '2-digit', hour12: true
+  });
+  var hour = '', minute = '', period = '';
+  var parts = fmt.formatToParts(date);
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i].type === 'hour') hour = parts[i].value;
+    else if (parts[i].type === 'minute') minute = parts[i].value;
+    else if (parts[i].type === 'dayPeriod') period = parts[i].value;
+  }
+  if (!hour || !minute) return '';
+  return hour + ':' + minute + (period ? ' ' + period : '');
+}
+
+export function formatNyStatus(date, now) {
+  var time = formatNyTime(date);
+  if (!time) return '';
+  if (!(now instanceof Date) || isNaN(now.getTime())) return time;
+  var a = nyDateParts(date);
+  var b = nyDateParts(now);
+  if (a.y === b.y && a.m === b.m && a.d === b.d) return time;
+  return a.mon + ' ' + a.d + ' ' + time;
+}
+
 // Device clocks on this frame can boot in 1969 until NTP. Don't use that year
 // to decide which events are "today". Returns null when the device clock is fine.
 export function clockAnchor(deviceNow, generated, dateHeader) {
@@ -275,9 +320,53 @@ export function adoptWeather(json) {
     weather: {
       live: true,
       current: { temp: current.temperature_2m, code: current.weather_code, h: cur ? cur.h : null },
-      hours: hours
+      hours: hours,
+      days: parseDaily(json)
     }
   };
+}
+
+// Next days for the Today strip. Index 0 is today. Missing or unusable daily
+// data yields [] and does not reject the current/hourly forecast.
+function parseDay(v) {
+  if (typeof v !== 'string') return null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
+  if (!m) return null;
+  var d = new Date(+m[1], +m[2] - 1, +m[3]);
+  if (d.getFullYear() !== +m[1] || d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[3]) return null;
+  return { y: +m[1], m: +m[2], d: +m[3] };
+}
+
+function parseDaily(json) {
+  var daily = json.daily;
+  if (!daily || typeof daily !== 'object' || Array.isArray(daily)) return [];
+  var units = json.daily_units || {};
+  if (units.temperature_2m_max != null && units.temperature_2m_max !== '°F') return [];
+  if (units.temperature_2m_min != null && units.temperature_2m_min !== '°F') return [];
+  var times = daily.time;
+  var hi = daily.temperature_2m_max;
+  var lo = daily.temperature_2m_min;
+  var codes = daily.weather_code;
+  var pops = daily.precipitation_probability_max;
+  if (!Array.isArray(times) || !Array.isArray(hi) || !Array.isArray(lo) || !Array.isArray(codes)) return [];
+  if (pops != null && !Array.isArray(pops)) return [];
+  var n = Math.min(times.length, hi.length, lo.length, codes.length);
+  if (pops) n = Math.min(n, pops.length);
+  var days = [];
+  for (var i = 0; i < n; i++) {
+    var day = parseDay(times[i]);
+    if (!day || !num(hi[i]) || !num(lo[i]) || !num(codes[i])) continue;
+    var precip = null;
+    if (pops && pops[i] != null) {
+      if (!num(pops[i]) || pops[i] < 0 || pops[i] > 100) continue;
+      precip = pops[i];
+    }
+    days.push({
+      y: day.y, m: day.m, d: day.d,
+      hi: hi[i], lo: lo[i], code: codes[i], precip: precip
+    });
+  }
+  return days;
 }
 
 export function adoptShopping(json) {

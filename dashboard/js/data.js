@@ -273,11 +273,21 @@ window.DATA = (function () {
   var D = window.DATA;
   var TIMEOUT = 15000;
   var REFRESH_MS = 5 * 60 * 1000;
+  var WATCH_MS = 15000;
   var anchored = false;
+  var lastFetchAt = 0;
+  var inFlight = null;
+  var bustN = 0;
 
   function root() {
     var base = import.meta.env.BASE_URL || '/frame/';
     return base.charAt(base.length - 1) === '/' ? base : base + '/';
+  }
+
+  function bust(url) {
+    bustN += 1;
+    var join = url.indexOf('?') === -1 ? '?' : '&';
+    return url + join + 't=' + Date.now() + '-' + bustN;
   }
 
   function fetchJson(url) {
@@ -289,7 +299,9 @@ window.DATA = (function () {
       headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
     };
     if (ctrl) opts.signal = ctrl.signal;
-    return fetch(url, opts).then(function (res) {
+    // WebView 106 can ignore cache: 'no-store' and keep the previous JSON.
+    // A new query on every attempt, including the retry, forces a re-fetch.
+    return fetch(bust(url), opts).then(function (res) {
       clearTimeout(timer);
       var dateHeader = '';
       try { dateHeader = res.headers && res.headers.get('Date') || ''; } catch (e) { dateHeader = ''; }
@@ -361,17 +373,34 @@ window.DATA = (function () {
   }
 
   window.loadFrameData = function () {
+    if (inFlight) return inFlight;
+    lastFetchAt = Date.now();
     var base = root();
-    return Promise.all([
+    var pending = Promise.all([
       fetchJsonRetry(base + 'data/calendar.json'),
       fetchJsonRetry(base + 'data/weather.json'),
       fetchJsonRetry(base + 'data/shopping.json')
     ]).then(applyAll);
+    inFlight = pending;
+    var clear = function () { if (inFlight === pending) inFlight = null; };
+    pending.then(clear, clear);
+    return pending;
   };
 
-  window.setInterval(function () {
-    if (typeof window.loadFrameData === 'function') window.loadFrameData().then(function () {
+  // setInterval alone does not run while the WebView is asleep, and a wake
+  // does not replay the missed 5-minute ticks. Poll Date.now() so the first
+  // callback after sleep sees the gap and fetches immediately.
+  function refreshIfDue() {
+    if (inFlight) return;
+    if (Date.now() - lastFetchAt < REFRESH_MS) return;
+    window.loadFrameData().then(function () {
       if (window.App && App.emit) App.emit('data');
     });
-  }, REFRESH_MS);
+  }
+  window.setInterval(refreshIfDue, WATCH_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') refreshIfDue();
+  });
+  window.addEventListener('pageshow', refreshIfDue);
+  window.addEventListener('focus', refreshIfDue);
 })();

@@ -16,6 +16,22 @@ import { eventsOverlapping } from '../parse.js';
       '</span></button>';
   }
 
+  function forecast() {
+    var days = App.forecastDays();
+    if (!days.length) return '';
+    return '<div class="today-forecast">' + days.map(function (d) {
+      var rain = d.precip != null && d.precip >= 20
+        ? Math.round(d.precip) + '%'
+        : '';
+      return '<div class="today-fc">' +
+        '<span class="today-fc-day">' + App.esc(d.label) + '</span>' +
+        App.icon(d.cond, 40) +
+        '<span class="today-fc-temps num"><b>' + d.hi + '°</b> <span>' + d.lo + '°</span></span>' +
+        '<span class="today-fc-rain">' + rain + '</span>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
   function paint(el) {
     var now = App.now();
     var w = App.weatherNow();
@@ -31,6 +47,7 @@ import { eventsOverlapping } from '../parse.js';
       '<div class="today-wx-meta"><b>' + App.esc(w.label) + '</b><span>High ' + w.hi + '°    Low ' + w.lo + '°</span></div>' +
       '<div class="today-wx-say">' + App.esc(w.summary) + '</div>' +
       '</div>' +
+      forecast() +
       '<div class="today-agenda">' +
       '<div class="label">Today</div>' +
       (events.length ? events.map(function (e) { return row(e, now); }).join('') : '<div class="empty-note">No events</div>') +

@@ -6,15 +6,15 @@ The UI started from the Home HQ dashboard in [Wes Bos’s photo-frame-dashboard]
 
 The frame never requests fonts or images from another host. Three views are on the rail:
 
-- **Today** — clock, date, weather, and today’s events
+- **Today** — clock, date, current weather, the next five days, and today’s events
 - **Calendar** — upcoming events for the next 14 days
 - **Shopping** — the list in `shopping.json`
 
 Chores, photos, climate, and the other original tiles are not mounted. Their view modules are still in `dashboard/js/views/` so they can be deleted without touching these three.
 
-Calendar, weather, and the shopping list come from JSON on the same origin. Each file is fetched with cookies (`credentials: 'same-origin'`), `cache: 'no-store'`, a **15 second** timeout, and **one retry**. The three files refresh every **5 minutes**. When a file parses, it **replaces** the built-in sample. An empty list stays empty and the screen says “No events” or “No items”. The sample is kept only when the response is missing, not JSON, or not the shape below.
+Calendar, weather, and the shopping list come from JSON on the same origin. Each file is fetched with cookies (`credentials: 'same-origin'`), `cache: 'no-store'`, and a `?t=` query so a WebView cannot keep the previous body. The timeout is **15 seconds**, with **one retry** (that retry uses a new query). The three files refresh every **5 minutes**. The timer checks `Date.now()` about every 15 seconds, and again when the page becomes visible, so a sleeping WebView still fetches once it wakes if five minutes have passed. When a file parses, it **replaces** the built-in sample. An empty list stays empty and the screen says “No events” or “No items”. The sample is kept only when the response is missing, not JSON, or not the shape below.
 
-A small status line at the bottom reads `calendar live` or `calendar sample`, plus the file’s `generated` time (or the time it was fetched). Weather or shopping still on the sample are called out on that same line.
+A small status line at the bottom reads `calendar live` or `calendar sample`, plus the time from the latest fetch. That time prefers `calendar.json` `generated` and is shown in **America/New_York** (so `2026-10-24T14:45:00-04:00` reads 2:45 PM). If `generated` is missing, the line uses the time the file was fetched, also in New York. Weather or shopping still on the sample are called out on that same line.
 
 If the device clock is still in a year before 2024 (the frame can boot at 1969 until NTP), “today” is taken from the server `generated` timestamp, or the HTTP `Date` header if that field is missing. A clock that is already in 2024 or later is left alone.
 
@@ -136,10 +136,12 @@ Today lists every event that overlaps today, including ones that already ended (
 Feeds the weather on Today. This file is an [Open-Meteo](https://open-meteo.com/en/docs) forecast saved as-is, in Fahrenheit and `America/New_York`:
 
 ```text
-https://api.open-meteo.com/v1/forecast?latitude=LAT&longitude=LON&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code,precipitation_probability&temperature_unit=fahrenheit&timezone=America%2FNew_York
+https://api.open-meteo.com/v1/forecast?latitude=LAT&longitude=LON&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&timezone=America%2FNew_York
 ```
 
 `hourly.time`, `hourly.temperature_2m`, and `hourly.weather_code` are parallel arrays. `precipitation_probability` should be the same length; `null` means 0. A timezone other than `America/New_York`, or a temperature unit other than `°F`, rejects the file and the tile keeps the sample. A full response is in [`dashboard/examples/data/weather.json`](dashboard/examples/data/weather.json).
+
+`daily` is optional. When it is present, `time`, `temperature_2m_max`, `temperature_2m_min`, and `weather_code` are parallel arrays (index 0 is today). Today draws the next five days (indices 1–5): short weekday, an icon from `weather_code`, high and low, and the rain percent from `precipitation_probability_max` when it is 20 or more. A missing or unusable `daily` block leaves the current weather up and hides the strip. Daily temperatures in a unit other than `°F` are ignored the same way.
 
 ### `shopping.json`
 

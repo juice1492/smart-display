@@ -6,9 +6,11 @@
   height: 100%;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 8px 36px;
 }
+.today-clock { grid-column: 1; grid-row: 1; }
+.today-wx { grid-column: 2; grid-row: 1; }
 .today-time {
   font-size: 128px;
   line-height: .78;
@@ -71,8 +73,46 @@
   font-style: italic;
   line-height: 1.15;
 }
+.today-forecast {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  gap: 10px;
+}
+.today-fc {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 6px 6px;
+  background: var(--paper-2);
+  border-radius: 16px;
+}
+.today-fc-day {
+  font-size: 20px;
+  font-weight: 800;
+  font-stretch: 75%;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.today-fc .i { margin-top: 4px; }
+.today-fc-temps {
+  margin-top: 2px;
+  font-size: 28px;
+  line-height: 1.1;
+}
+.today-fc-temps span { color: var(--mute); }
+.today-fc-rain {
+  min-height: 22px;
+  margin-top: 1px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1F6FEB;
+}
 .today-agenda {
   grid-column: 1 / -1;
+  grid-row: 3;
   min-height: 0;
   overflow: auto;
   border-top: 3px solid var(--ink);

@@ -1,4 +1,6 @@
 // Core shell: router, demo clock, idle/ambient, toasts, sheets, helpers.
+import { formatNyStatus } from './parse.js';
+
 (function () {
   'use strict';
   var D = window.DATA;
@@ -271,6 +273,24 @@
     }
     return out;
   };
+  // Next 5 daily rows (weather.days[1..5]). Index 0 is today and stays off the strip.
+  App.forecastDays = function () {
+    var W = D.weather;
+    if (!W || !W.days || !W.days.length) return [];
+    var out = [];
+    for (var i = 1; i < W.days.length && out.length < 5; i++) {
+      var day = W.days[i];
+      var date = new Date(day.y, day.m - 1, day.d);
+      out.push({
+        label: App.fmt.dayShort(date),
+        cond: condFromCode(day.code, 12),
+        hi: Math.round(day.hi),
+        lo: Math.round(day.lo),
+        precip: day.precip
+      });
+    }
+    return out;
+  };
 
   // ------------------------------------------------------------ router
   App.register = function (name, view) { App.views[name] = view; };
@@ -473,9 +493,8 @@
     if (wx.source !== 'live') text += ' · weather sample';
     if (shop.source !== 'live') text += ' · shopping sample';
     if (cal.updated) {
-      var when = App.fmt.time(cal.updated);
-      if (!App.sameDay(cal.updated, App.now())) when = App.fmt.monthShort(cal.updated) + ' ' + cal.updated.getDate() + ' ' + when;
-      text += ' · ' + when;
+      var when = formatNyStatus(cal.updated, App.now());
+      if (when) text += ' · ' + when;
     }
     el.innerHTML = '<i></i><span>' + text + '</span>';
   };
