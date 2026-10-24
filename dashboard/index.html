@@ -12,13 +12,29 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/views/frame.css">
+  <script>
+    // 100vh can disagree with the visible WebView, so --vh tracks innerHeight
+    // and the shell uses calc(var(--vh) * 100).
+    (function () {
+      function setVh() {
+        var h = window.innerHeight || document.documentElement.clientHeight;
+        if (h) document.documentElement.style.setProperty('--vh', (h * 0.01) + 'px');
+      }
+      setVh();
+      window.addEventListener('resize', setVh);
+      window.addEventListener('orientationchange', setVh);
+      window.addEventListener('pageshow', setVh);
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', setVh);
+    })();
+  </script>
 </head>
 <body>
+  <div id="root">
   <div class="stage" id="stage" data-mode="day">
     <nav class="rail" id="rail" aria-label="Sections">
-      <button class="rail-item" data-go="home"><svg class="i" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Today</span></button>
-      <button class="rail-item" data-go="calendar"><svg class="i" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Calendar</span></button>
-      <button class="rail-item" data-go="shopping"><svg class="i" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.8L21 8H6.5"/><circle cx="10" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg><span>Shopping</span></button>
+      <button class="rail-item" data-go="home"><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Today</span></button>
+      <button class="rail-item" data-go="calendar"><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Calendar</span></button>
+      <button class="rail-item" data-go="shopping"><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.8L21 8H6.5"/><circle cx="10" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg><span>Shopping</span></button>
       <button class="rail-clock" id="railClock" aria-label="Clock"></button>
     </nav>
 
@@ -36,6 +52,7 @@
     <div class="night" id="night"></div>
     <div class="demo" id="demo"></div>
     <div class="frame-status" id="frameStatus"><i></i><span>calendar sample</span></div>
+  </div>
   </div>
 
   <script>

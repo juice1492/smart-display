@@ -1,6 +1,13 @@
 /* ---------------------------------------------------------------- reset */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #0B0B0B; }
+html, body, #root { margin: 0; height: 100%; }
+html, body { overflow: hidden; background: var(--paper); }
+#root {
+  width: 100%;
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+  overflow: hidden;
+}
 body {
   font-family: var(--sans);
   font-size: var(--fs-body);
@@ -37,45 +44,53 @@ ul { margin: 0; padding: 0; list-style: none; }
 .label--light { color: rgba(255, 255, 255, .72); }
 .label--on { color: var(--c-ink); opacity: .8; }
 
-/* ---------------------------------------------------------------- stage (800 tall; width set by fit() in app.js, min 1280) */
+/* ---------------------------------------------------------------- stage (fills #root; height comes from --vh, not a fixed 800px) */
 .stage {
-  position: absolute;
-  left: 50%; top: 50%;
-  width: var(--stage-w, 1280px); height: 800px;
-  margin: -400px 0 0 calc(var(--stage-w, 1280px) / -2);
-  transform-origin: 50% 50%;
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: var(--paper);
   overflow: hidden;
   display: grid;
-  grid-template-columns: 112px 1fr;
+  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 /* ---------------------------------------------------------------- rail */
 .rail {
   display: flex; flex-direction: column;
+  height: 100%;
+  min-height: 0;
   padding: 8px 0 12px;
   border-right: 2px solid var(--ink);
   background: var(--paper);
   z-index: 5;
 }
 .rail-item {
-  height: 88px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  font-size: 14px; font-weight: 700; font-stretch: 70%; letter-spacing: .04em; text-transform: uppercase;
+  height: 100px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  font-size: 16px; font-weight: 700; font-stretch: 70%; letter-spacing: .04em; text-transform: uppercase;
   color: var(--ink-2);
   position: relative;
 }
 .rail-item.is-active { background: var(--ink); color: var(--paper); }
 .rail-item:active { background: var(--paper-2); }
 .rail-item.is-active:active { background: var(--ink-2); }
-.rail-clock { margin-top: auto; padding: 10px 0; text-align: center; line-height: 1; position: relative; overflow: hidden; }
+.rail-clock { margin-top: auto; padding: 12px 0 4px; text-align: center; line-height: 1; position: relative; overflow: hidden; }
 .rail-clock.is-holding { background: var(--paper-2); }
-.rail-clock b { display: block; font-size: 24px; font-weight: 800; font-stretch: 62%; font-variant-numeric: tabular-nums; }
-.rail-clock span { font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--mute); }
+.rail-clock b { display: block; font-size: 30px; font-weight: 800; font-stretch: 62%; font-variant-numeric: tabular-nums; }
+.rail-clock span { font-size: 14px; font-weight: 700; letter-spacing: .1em; color: var(--mute); }
 
 /* ---------------------------------------------------------------- views */
-.views { position: relative; overflow: hidden; }
-.view { position: absolute; top: 0; right: 0; bottom: 0; left: 0; padding: var(--pad); content-visibility: hidden; z-index: 0; }
+.views { position: relative; height: 100%; min-height: 0; overflow: hidden; }
+.view {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  display: flex; flex-direction: column;
+  padding: var(--pad);
+  min-height: 0;
+  content-visibility: hidden;
+  z-index: 0;
+}
 .view.is-active, .view.is-warming { content-visibility: visible; }
 .view.is-active { z-index: 1; }
 .view--bleed { padding: 0; }

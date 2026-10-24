@@ -1,6 +1,6 @@
 # Smart display
 
-A landscape kiosk for an old Android photo frame. It is built for **Android System WebView 106** (Chrome 106) at **1280×800**, with large type.
+A landscape kiosk for an old Android photo frame. It is built for **Android System WebView 106** (Chrome 106) at **1280×800**, with large type. The shell (`html`, `body`, `#root`) is the full viewport: `100%` and `100vh`, with `--vh` set from `window.innerHeight` on resize because this WebView has no `dvh`. The left rail runs the full height, and each screen’s list fills the space under its header.
 
 The UI started from the Home HQ dashboard in [Wes Bos’s photo-frame-dashboard](https://github.com/wesbos/photo-frame-dashboard), `dashboard/` folder, commit [`0bff55e`](https://github.com/wesbos/photo-frame-dashboard/commit/0bff55ef3fb2a3bfdab05bc8e3bd0c9d69f63189). That project is MIT licensed. The copyright notice and license terms are in [`LICENSE`](LICENSE). Archivo and Instrument Serif are bundled under the SIL Open Font License; see [`dashboard/fonts/OFL.txt`](dashboard/fonts/OFL.txt).
 

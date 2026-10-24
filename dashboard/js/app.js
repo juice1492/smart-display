@@ -391,10 +391,10 @@ import { formatNyStatus } from './parse.js';
   };
   App.closeSheet = function () {};
 
-  // Stage-local coordinates for an element's center (stage may be scaled on desktop)
+  // Stage-local coordinates for an element's center. The shell is not scaled.
   App.centerOf = function (el) {
-    var stage = $('#stage').getBoundingClientRect(), r = el.getBoundingClientRect(), k = stage.height / 800;
-    return { x: (r.left + r.width / 2 - stage.left) / k, y: (r.top + r.height / 2 - stage.top) / k };
+    var stage = $('#stage').getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - stage.left, y: r.top + r.height / 2 - stage.top };
   };
 
   // ------------------------------------------------------------ press-and-hold
@@ -433,16 +433,17 @@ import { formatNyStatus } from './parse.js';
   }
   App.resetIdle = function () { idleSec = 0; };
 
-  // ------------------------------------------------------------ stage scaling
-  // Designed at 1280×800. Screens wider than 16:10 (e.g. 1920×1080 frames) widen the stage to their
-  // aspect instead of pillarboxing; narrower screens letterbox as before.
-  var STAGE_H = 800, STAGE_MIN_W = 1280;
+  // ------------------------------------------------------------ viewport height
+  // The shell is height: calc(var(--vh) * 100). A fixed 800px stage left a gap on
+  // frames taller than 16:10. innerHeight is the fallback for 100vh.
+  function setVh() {
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    if (h) document.documentElement.style.setProperty('--vh', (h * 0.01) + 'px');
+  }
   function fit() {
+    setVh();
     var stage = $('#stage');
-    var w = Math.max(STAGE_MIN_W, Math.round(STAGE_H * window.innerWidth / window.innerHeight));
-    stage.style.setProperty('--stage-w', w + 'px');
-    var s = Math.min(window.innerWidth / w, window.innerHeight / STAGE_H);
-    stage.style.transform = Math.abs(s - 1) < 0.01 ? '' : 'scale(' + s + ')';
+    if (stage) stage.style.transform = '';
   }
 
   // ------------------------------------------------------------ clock tick

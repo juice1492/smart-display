@@ -217,11 +217,10 @@
         });
         knob.addEventListener('pointermove', function (e) {
           if (sx == null) return;
-          var k = App.$('#stage').getBoundingClientRect().height / 800;
-          var x = Math.max(0, Math.min(max / k, (e.clientX - sx) / k));
+          var x = Math.max(0, Math.min(max, e.clientX - sx));
           knob.style.transform = 'translateX(' + x + 'px)';
           fill.style.width = (x + 76) + 'px';
-          knob._x = x; knob._max = max / k;
+          knob._x = x; knob._max = max;
         });
         knob.addEventListener('pointerup', function () {
           if (sx == null) return;

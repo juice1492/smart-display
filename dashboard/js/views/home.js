@@ -25,7 +25,7 @@ import { eventsOverlapping } from '../parse.js';
         : '';
       return '<div class="today-fc">' +
         '<span class="today-fc-day">' + App.esc(d.label) + '</span>' +
-        App.icon(d.cond, 40) +
+        App.icon(d.cond, 48) +
         '<span class="today-fc-temps num"><b>' + d.hi + '°</b> <span>' + d.lo + '°</span></span>' +
         '<span class="today-fc-rain">' + rain + '</span>' +
         '</div>';

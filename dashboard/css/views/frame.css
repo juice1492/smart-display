@@ -1,30 +1,37 @@
 /* Today, Calendar, Shopping. Large type for a 1280×800 frame. */
 
-.view { padding-bottom: 44px; }
+.view { padding-bottom: 48px; }
+
+.today,
+.agenda,
+.slist {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
 
 .today {
-  height: 100%;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 8px 36px;
+  gap: 16px 36px;
 }
 .today-clock { grid-column: 1; grid-row: 1; }
 .today-wx { grid-column: 2; grid-row: 1; }
 .today-time {
-  font-size: 128px;
+  font-size: 152px;
   line-height: .78;
   letter-spacing: -.04em;
 }
 .today-time span {
-  font-size: 36px;
+  font-size: 42px;
   letter-spacing: .08em;
   margin-left: 14px;
 }
 .today-date {
-  margin-top: 16px;
+  margin-top: 18px;
   font-family: var(--serif);
-  font-size: 40px;
+  font-size: 48px;
   line-height: 1.1;
 }
 .today-date b {
@@ -33,7 +40,7 @@
   font-stretch: 75%;
   letter-spacing: .04em;
   text-transform: uppercase;
-  font-size: 28px;
+  font-size: 32px;
   margin-right: 10px;
 }
 .today-wx {
@@ -49,13 +56,13 @@
   gap: 16px;
 }
 .today-wx-temp .num {
-  font-size: 112px;
+  font-size: 132px;
   line-height: .8;
   letter-spacing: -.03em;
 }
 .today-wx-meta {
-  margin-top: 8px;
-  font-size: 28px;
+  margin-top: 10px;
+  font-size: 32px;
 }
 .today-wx-meta b {
   display: block;
@@ -63,13 +70,13 @@
   font-stretch: 80%;
   letter-spacing: .04em;
   text-transform: uppercase;
-  font-size: 26px;
+  font-size: 30px;
 }
 .today-wx-meta span { color: var(--mute); }
 .today-wx-say {
   margin-top: 8px;
   font-family: var(--serif);
-  font-size: 32px;
+  font-size: 36px;
   font-style: italic;
   line-height: 1.15;
 }
@@ -90,23 +97,23 @@
   border-radius: 16px;
 }
 .today-fc-day {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
   font-stretch: 75%;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-.today-fc .i { margin-top: 4px; }
+.today-fc .i { margin-top: 6px; }
 .today-fc-temps {
-  margin-top: 2px;
-  font-size: 28px;
+  margin-top: 4px;
+  font-size: 34px;
   line-height: 1.1;
 }
 .today-fc-temps span { color: var(--mute); }
 .today-fc-rain {
-  min-height: 22px;
-  margin-top: 1px;
-  font-size: 18px;
+  min-height: 26px;
+  margin-top: 2px;
+  font-size: 22px;
   font-weight: 800;
   color: #1F6FEB;
 }
@@ -124,48 +131,46 @@
   align-items: baseline;
   gap: 28px;
   width: 100%;
-  min-height: 92px;
-  padding: 14px 4px;
+  min-height: 108px;
+  padding: 16px 4px;
   border-bottom: 2px solid var(--line);
   text-align: left;
 }
 .ev-when {
   flex: none;
-  width: 190px;
-  font-size: 32px;
+  width: 210px;
+  font-size: 36px;
   color: var(--ink-2);
 }
 .ev-main { min-width: 0; }
 .ev-main b {
   display: block;
   font-family: var(--serif);
-  font-size: 44px;
+  font-size: 50px;
   font-weight: 400;
   line-height: 1.05;
 }
 .ev-loc {
   display: block;
   margin-top: 4px;
-  font-size: 24px;
+  font-size: 28px;
   color: var(--mute);
 }
 .ev-row.is-past { opacity: .45; }
 .empty-note {
   font-family: var(--serif);
-  font-size: 52px;
+  font-size: 60px;
   line-height: 1.1;
   color: var(--mute);
   padding: 28px 0;
 }
 
 .agenda {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 .agenda-head h1 {
-  font-size: 64px;
+  font-size: 76px;
   line-height: .95;
 }
 .agenda-cols {
@@ -178,7 +183,7 @@
 }
 .agenda-col { min-width: 0; }
 .agenda-col h2 {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 800;
   font-stretch: 75%;
   letter-spacing: .06em;
@@ -189,7 +194,7 @@
 }
 .day-h {
   margin: 18px 0 0;
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -197,10 +202,8 @@
 }
 
 .slist {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 .slist-head {
   display: flex;
@@ -208,29 +211,29 @@
   justify-content: space-between;
   gap: 24px;
 }
-.slist-head h1 { font-size: 72px; line-height: .95; }
-.slist-count { font-size: 28px; color: var(--mute); }
-.slist-count .num { font-size: 48px; color: var(--ink); margin-right: 8px; }
+.slist-head h1 { font-size: 84px; line-height: .95; }
+.slist-count { font-size: 32px; color: var(--mute); }
+.slist-count .num { font-size: 56px; color: var(--ink); margin-right: 8px; }
 .slist-items { flex: 1; min-height: 0; overflow: auto; margin-top: 8px; }
 .slist-item {
   display: flex;
   align-items: center;
   gap: 22px;
   width: 100%;
-  min-height: 100px;
+  min-height: 116px;
   padding: 8px 4px;
   border-bottom: 2px solid var(--line);
   text-align: left;
 }
 .slist-item b {
   font-family: var(--serif);
-  font-size: 44px;
+  font-size: 52px;
   font-weight: 400;
   line-height: 1.1;
 }
 .slist-box {
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
   border-radius: 14px;
   flex: none;
   display: grid;
