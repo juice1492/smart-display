@@ -1,0 +1,20 @@
+{
+  "photos": [
+    {
+      "file": "harbour.jpg",
+      "orientation": "landscape",
+      "date": "2025-07-19",
+      "place": "Toronto Harbour",
+      "from": "otto",
+      "tag": "sail"
+    },
+    {
+      "file": "garden.jpg",
+      "orientation": "portrait",
+      "date": "2025-06-08",
+      "place": "Backyard",
+      "from": "maya",
+      "tag": "garden"
+    }
+  ]
+}

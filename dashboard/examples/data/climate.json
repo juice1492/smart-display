@@ -1,0 +1,9 @@
+{
+  "indoor": {
+    "current": 20.5,
+    "set": 21.5,
+    "mode": "heat",
+    "humidity": 42,
+    "outside": 14
+  }
+}

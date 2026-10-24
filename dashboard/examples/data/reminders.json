@@ -1,0 +1,55 @@
+{
+  "reminders": [
+    {
+      "id": "bed-maya",
+      "title": "Make bed",
+      "who": "maya",
+      "routine": "morning",
+      "emoji": "🛏️",
+      "stars": 1,
+      "done": true
+    },
+    {
+      "id": "bed-otto",
+      "title": "Make bed",
+      "who": "otto",
+      "routine": "morning",
+      "emoji": "🛏️",
+      "stars": 1,
+      "done": false
+    },
+    {
+      "id": "recycling",
+      "title": "Take out recycling",
+      "who": "alex",
+      "routine": "after",
+      "emoji": "♻️",
+      "stars": 0,
+      "done": false,
+      "overdue": true
+    },
+    {
+      "id": "plants",
+      "title": "Water the plants",
+      "who": "any",
+      "routine": "after",
+      "emoji": "🪴",
+      "stars": 1,
+      "done": false
+    },
+    {
+      "id": "table",
+      "title": "Set the table",
+      "who": "maya",
+      "routine": "evening",
+      "emoji": "🍴",
+      "stars": 1,
+      "done": false
+    }
+  ],
+  "stars": { "maya": 42, "otto": 57 },
+  "week": {
+    "maya": [1, 1, 0, 1, 1, 0, 1],
+    "otto": [1, 0, 1, 1, 1, 1, 0]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "events": [
+    {
+      "id": "pajama",
+      "title": "Pajama Day at school",
+      "allDay": true,
+      "start": "2026-10-24T00:00:00",
+      "end": "2026-10-25T00:00:00",
+      "people": ["otto"]
+    },
+    {
+      "id": "dropoff",
+      "title": "School drop-off",
+      "start": "2026-10-24T08:15:00",
+      "end": "2026-10-24T08:40:00",
+      "people": ["alex"],
+      "travel": 10,
+      "loc": "Parkdale Elementary"
+    },
+    {
+      "id": "piano",
+      "title": "Piano lesson",
+      "start": "2026-10-24T15:45:00",
+      "end": "2026-10-24T16:30:00",
+      "people": ["otto"],
+      "travel": 12,
+      "loc": "Ms. Park's Studio",
+      "notes": "Bring the blue theory book."
+    },
+    {
+      "id": "soccer",
+      "title": "Soccer practice",
+      "start": "2026-10-24T16:30:00",
+      "end": "2026-10-24T18:00:00",
+      "people": ["maya"],
+      "travel": 20,
+      "loc": "Lakeshore Fields",
+      "notes": "Shin guards and a water bottle."
+    }
+  ]
+}
