@@ -66,9 +66,7 @@ import { alertKey, dueAlerts, countdownLabel } from './parse.js';
     var layer = document.getElementById('alertLayer');
     if (!layer) return;
     var now = App.now();
-    var html = '<div class="alert-card">' +
-      '<button type="button" class="alert-x" aria-label="Dismiss">&#215;</button>' +
-      '<p class="alert-kicker">Coming up</p>';
+    var html = '<div class="alert-card"><p class="alert-kicker">Coming up</p>';
     for (var i = 0; i < latched.length; i++) {
       var ev = latched[i];
       html += '<article class="alert-item">' +

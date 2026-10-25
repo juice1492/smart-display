@@ -244,30 +244,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 128px 72px 148px;
-}
-.alert-x {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 96px;
-  height: 96px;
-  border: 4px solid var(--sun);
-  border-radius: 16px;
-  background: var(--ink);
-  color: var(--sun);
-  font-size: 72px;
-  font-weight: 800;
-  line-height: 1;
-  text-align: center;
-}
-.alert-x:active {
-  background: var(--sun);
-  color: var(--ink);
+  padding: 48px 72px 148px;
 }
 .alert-kicker {
   margin: 0 0 8px;
