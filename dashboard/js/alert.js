@@ -66,7 +66,9 @@ import { alertKey, dueAlerts, countdownLabel } from './parse.js';
     var layer = document.getElementById('alertLayer');
     if (!layer) return;
     var now = App.now();
-    var html = '<div class="alert-card"><p class="alert-kicker">Coming up</p>';
+    var html = '<div class="alert-card">' +
+      '<button type="button" class="alert-x" aria-label="Dismiss">&#215;</button>' +
+      '<p class="alert-kicker">Coming up</p>';
     for (var i = 0; i < latched.length; i++) {
       var ev = latched[i];
       html += '<article class="alert-item">' +
@@ -77,7 +79,8 @@ import { alertKey, dueAlerts, countdownLabel } from './parse.js';
         (ev.notes ? '<p class="alert-notes">' + App.esc(ev.notes) + '</p>' : '') +
         '</article>';
     }
-    html += '<p class="alert-hint">Tap anywhere to close</p></div>';
+    html += '<p class="alert-hint">Tap anywhere to close</p>' +
+      '<button type="button" class="alert-dismiss">Dismiss</button></div>';
     layer.innerHTML = html;
     layer.hidden = false;
     layer.classList.add('is-open');
