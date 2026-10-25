@@ -133,7 +133,7 @@ Columns are derived from this file. Nothing is hard-coded to a person.
 | `travel` or `travelMinutes` | no | Minutes. `null` is ignored. |
 | `notes` | no | String. `null` is ignored. |
 
-Today lists every event that overlaps today, including ones that already ended (they are dimmed). It does not put events back on the sample when the only ones left are in the past. Calendar lists events that overlap the next 14 days, grouped by day. If that window is empty, the screen says “No events”.
+Today lists at most three timed events whose start is still ahead. Events that have already started are left off so later ones can take a slot, and `+N more` appears when more than three remain. An empty or past-only file still says “No events” and does not fall back to the sample. Calendar lists events that overlap the next 14 days, grouped by day, and dims ones that have already ended. If that window is empty, the screen says “No events”.
 
 ### `weather.json`
 
