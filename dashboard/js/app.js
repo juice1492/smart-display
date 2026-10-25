@@ -504,7 +504,6 @@ import { formatNyStatus } from './parse.js';
     App.emit('second', n);
     if (n.getMinutes() !== lastMin) {
       lastMin = n.getMinutes();
-      $('#railClock').innerHTML = '<b>' + App.fmt.time(n, false) + '</b><span>' + App.fmt.ampm(n) + '</span>';
       App.emit('minute', n);
     }
     onIdleTick();

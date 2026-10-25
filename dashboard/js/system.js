@@ -186,7 +186,6 @@
 
   App.on('ready', function () {
     $('#demo').addEventListener('click', demoClick);
-    App.hold($('#railClock'), 700, { done: App.openDemo });
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT') return;
       var k = e.key.toLowerCase();
