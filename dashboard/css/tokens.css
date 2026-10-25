@@ -1,14 +1,17 @@
 /* Design tokens. Target: Android WebView 106. */
 :root {
-  /* paper + ink */
-  --paper: #F2EEE6;
-  --paper-2: #E8E2D5;
-  --card: #FBF9F4;
-  --ink: #111111;
-  --ink-rgb: 17 17 17;
-  --ink-2: #3B3934;
-  --mute: #7A756B;
-  --line: #D6CFC0;
+  /* Theme. Recolor the frame by editing this block.
+     The Today mock is a blue field with dark ink and a yellow sun. */
+  --paper: #4EA4E8;
+  --paper-2: #3B92D4;
+  --card: #7BBDF0;
+  --ink: #1A1A1A;
+  --ink-rgb: 26 26 26;
+  --ink-2: #163044;
+  --mute: #163044;
+  --line: #1A1A1A;
+  --sun: #F0C43A;
+  --rain: #0E3A66;
 
   /* signal colours */
   --alert: #E5261E;

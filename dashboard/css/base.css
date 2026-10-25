@@ -73,9 +73,9 @@ ul { margin: 0; padding: 0; list-style: none; }
   color: var(--ink-2);
   position: relative;
 }
-.rail-item.is-active { background: var(--ink); color: var(--paper); }
+.rail-item.is-active { background: var(--paper-2); color: var(--ink); }
 .rail-item:active { background: var(--paper-2); }
-.rail-item.is-active:active { background: var(--ink-2); }
+.rail-item.is-active:active { background: var(--paper-2); }
 .rail-clock { margin-top: auto; padding: 12px 0 4px; text-align: center; line-height: 1; position: relative; overflow: hidden; }
 .rail-clock.is-holding { background: var(--paper-2); }
 .rail-clock b { display: block; font-size: 30px; font-weight: 800; font-stretch: 62%; font-variant-numeric: tabular-nums; }
@@ -92,6 +92,8 @@ ul { margin: 0; padding: 0; list-style: none; }
   z-index: 0;
 }
 .view.is-active, .view.is-warming { content-visibility: visible; }
+.rail-item[hidden],
+.view[hidden] { display: none; }
 .view.is-active { z-index: 1; }
 .view--bleed { padding: 0; }
 
