@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import {
   adoptCalendar, adoptWeather, adoptShopping,
   columnsFor, eventsInColumn, eventsOverlapping,
-  clockAnchor, parseWhen, parseGenerated, formatNyTime, formatNyStatus
+  clockAnchor, parseWhen, parseGenerated, formatNyTime, formatNyStatus,
+  upcomingTimed, dueAlerts, countdownLabel, alertKey
 } from '../js/parse.js';
 
 // The frame's calendar.json. Times have no offset. people is empty.
@@ -317,4 +318,48 @@ test('parseWhen accepts the no-offset form used on the server', () => {
   assert.equal(d.getMinutes(), 30);
   const zoned = parseWhen('2026-10-24T13:30:00-04:00');
   assert.equal(zoned.getHours(), 13);
+});
+
+test('hourly rows are optional and may be a list of objects', () => {
+  const current = { time: '2026-10-25T14:00', temperature_2m: 65, weather_code: 0 };
+  const base = { timezone: 'America/New_York', current_units: { temperature_2m: '°F' }, current };
+  const missing = adoptWeather(base);
+  assert.equal(missing.ok, true);
+  assert.deepEqual(missing.weather.hours, []);
+
+  const rows = adoptWeather(Object.assign({}, base, {
+    hourly: [
+      { time: '2026-10-25T14:00', temp: 65, precip_prob: 0 },
+      { time: '2026-10-25T15:00', temp: 64, precip_prob: 40, weather_code: 61 },
+      { time: 'bad', temp: 1, precip_prob: 0 }
+    ]
+  }));
+  assert.equal(rows.ok, true);
+  assert.equal(rows.weather.hours.length, 2);
+  assert.equal(rows.weather.hours[1].temp, 64);
+  assert.equal(rows.weather.hours[1].precip, 40);
+  assert.equal(rows.weather.hours[1].code, 61);
+  assert.equal(adoptWeather({ timezone: 'America/New_York' }).ok, false);
+});
+
+test('today keeps the next three timed events and alerts use a 30 minute lead', () => {
+  const at = (h, m) => new Date(2026, 9, 25, h, m, 0);
+  const now = at(14, 0);
+  const events = [
+    { id: 'past', title: 'Past', start: at(13, 0), end: at(13, 30), allDay: false },
+    { id: 'going', title: 'Going', start: at(13, 30), end: at(15, 0), allDay: false },
+    { id: 'soon', title: 'Soon', start: at(14, 12), end: at(15, 0), allDay: false },
+    { id: 'edge', title: 'Edge', start: at(14, 30), end: at(15, 0), allDay: false },
+    { id: 'later', title: 'Later', start: at(16, 0), end: at(17, 0), allDay: false },
+    { id: 'eve', title: 'Eve', start: at(18, 0), end: at(19, 0), allDay: false },
+    { id: 'all', title: 'All day', start: at(0, 0), end: at(23, 59), allDay: true }
+  ];
+  const up = upcomingTimed(events, now, 3);
+  assert.deepEqual(up.events.map((e) => e.id), ['soon', 'edge', 'later']);
+  assert.equal(up.more, 1);
+  const due = dueAlerts(events, now, 30 * 60 * 1000);
+  assert.deepEqual(due.map((e) => e.id), ['going', 'soon', 'edge']);
+  assert.equal(countdownLabel(at(14, 12), now), 'in 12 min');
+  assert.equal(countdownLabel(now, now), 'Now');
+  assert.equal(alertKey({ id: 'soon', start: at(14, 12) }), 'soon|' + at(14, 12).getTime());
 });

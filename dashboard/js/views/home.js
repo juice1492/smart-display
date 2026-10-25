@@ -1,56 +1,39 @@
-// Today: clock, date, weather, and today's events. No per-person lanes.
-import { eventsOverlapping } from '../parse.js';
+// Today: weekday, date and time, up to three events still to start, current weather.
+import { upcomingTimed } from '../parse.js';
 
 (function () {
   'use strict';
   var D = window.DATA;
   var V = { el: null };
 
-  function row(e, now) {
-    var past = !e.allDay && e.end <= now;
-    var when = e.allDay ? 'All day' : App.fmt.time(e.start);
-    return '<button class="ev-row' + (past ? ' is-past' : '') + '" data-ev="' + App.esc(e.id) + '">' +
-      '<span class="ev-when num">' + when + '</span>' +
-      '<span class="ev-main"><b>' + App.esc(e.title) + '</b>' +
-      (e.loc ? '<span class="ev-loc">' + App.esc(e.loc) + '</span>' : '') +
-      '</span></button>';
-  }
-
-  function forecast() {
-    var days = App.forecastDays();
-    if (!days.length) return '';
-    return '<div class="today-forecast">' + days.map(function (d) {
-      var rain = d.precip != null && d.precip >= 20
-        ? Math.round(d.precip) + '%'
-        : '';
-      return '<div class="today-fc">' +
-        '<span class="today-fc-day">' + App.esc(d.label) + '</span>' +
-        App.icon(d.cond, 48) +
-        '<span class="today-fc-temps num"><b>' + d.hi + '°</b> <span>' + d.lo + '°</span></span>' +
-        '<span class="today-fc-rain">' + rain + '</span>' +
-        '</div>';
-    }).join('') + '</div>';
+  function mark(cond) {
+    if (cond === 'sun') return '<span class="wx-orb"></span>';
+    if (cond === 'moon') return '<span class="wx-orb is-moon"></span>';
+    return App.icon(cond, 96);
   }
 
   function paint(el) {
     var now = App.now();
     var w = App.weatherNow();
-    var day = App.dayStart(now);
-    var events = eventsOverlapping(D.events, day, App.addDays(day, 1));
+    var upcoming = upcomingTimed(D.events, now, 3);
+    var events = upcoming.events.map(function (e) {
+      return '<button class="today-ev" data-ev="' + App.esc(e.id) + '">' +
+        '<b>' + App.esc(e.title) + '</b>' +
+        '<span class="num">' + App.fmt.time(e.start) + '</span></button>';
+    }).join('');
+    if (!events) events = '<div class="today-empty">No events</div>';
+    else if (upcoming.more) events += '<button class="today-more" data-more="1">+' + upcoming.more + ' more</button>';
     el.innerHTML = '<div class="today">' +
-      '<div class="today-clock">' +
-      '<div class="today-time num">' + App.fmt.time(now, false) + '<span>' + App.fmt.ampm(now) + '</span></div>' +
-      '<div class="today-date"><b>' + App.fmt.day(now) + '</b> ' + App.fmt.month(now) + ' ' + now.getDate() + ', ' + now.getFullYear() + '</div>' +
-      '</div>' +
+      '<h1 class="today-day serif">' + App.fmt.day(now) + '</h1>' +
+      '<p class="today-when">' + App.fmt.month(now) + ' ' + now.getDate() + ' · ' + App.fmt.time(now) + '</p>' +
+      '<div class="today-rule"></div>' +
+      '<div class="today-events">' + events + '</div>' +
+      '<div class="today-split"></div>' +
       '<div class="today-wx">' +
-      '<div class="today-wx-temp">' + App.icon(w.cond, 64) + '<span class="num">' + w.temp + '°</span></div>' +
-      '<div class="today-wx-meta"><b>' + App.esc(w.label) + '</b><span>High ' + w.hi + '°    Low ' + w.lo + '°</span></div>' +
-      '<div class="today-wx-say">' + App.esc(w.summary) + '</div>' +
-      '</div>' +
-      forecast() +
-      '<div class="today-agenda">' +
-      '<div class="label">Today</div>' +
-      (events.length ? events.map(function (e) { return row(e, now); }).join('') : '<div class="empty-note">No events</div>') +
+      '<div class="today-wx-temp">' + mark(w.cond) + '<span class="num">' + w.temp + '°</span></div>' +
+      '<div class="today-wx-cond">' + App.esc(w.label) + '</div>' +
+      '<div class="today-wx-range">High ' + w.hi + '°  Low ' + w.lo + '°</div>' +
+      '<div class="today-wx-pop">' + App.esc(w.summary) + '</div>' +
       '</div></div>';
   }
 
@@ -61,6 +44,7 @@ import { eventsOverlapping } from '../parse.js';
       if (!el._bound) {
         el._bound = true;
         el.addEventListener('click', function (e) {
+          if (e.target.closest('[data-more]')) { App.go('calendar'); return; }
           var t = e.target.closest('[data-ev]');
           if (!t) return;
           var id = t.getAttribute('data-ev');

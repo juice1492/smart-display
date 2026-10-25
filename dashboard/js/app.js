@@ -182,54 +182,55 @@ import { formatNyStatus } from './parse.js';
     var soccer = App.timedOn(App.now()).filter(function (e) { return /soccer/i.test(e.title) && e.start > App.now(); })[0];
     return soccer ? 'Pack a rain jacket for soccer' : 'Grab a rain jacket';
   }
+  function dayHiLo(hours, today) {
+    var hi = -Infinity, lo = Infinity, any = false;
+    for (var i = 0; i < hours.length; i++) {
+      if (today != null && wallKey(hours[i]) !== today) continue;
+      any = true;
+      if (hours[i].temp > hi) hi = hours[i].temp;
+      if (hours[i].temp < lo) lo = hours[i].temp;
+    }
+    return any ? { hi: Math.round(hi), lo: Math.round(lo) } : null;
+  }
+  function precipLine(hours, now, day0) {
+    var today = wallKey(now);
+    var rainAt = -1;
+    var max = -1;
+    var idx = hours.length ? hourIndex(hours, now) : -1;
+    for (var r = 0; r < hours.length; r++) {
+      if (wallKey(hours[r]) !== today || hours[r].h < now.h) continue;
+      if (hours[r].precip > max) max = hours[r].precip;
+      if (rainAt < 0 && hours[r].precip >= 50) rainAt = r;
+    }
+    if (rainAt === idx && rainAt > -1) {
+      var stop = rainAt + 1;
+      while (stop < hours.length && wallKey(hours[stop]) === today && hours[stop].precip >= 50) stop++;
+      return stop < hours.length && wallKey(hours[stop]) === today
+        ? 'Rain until ' + hourClock(hours[stop].h)
+        : 'Rain through this evening';
+    }
+    if (rainAt > -1) return 'Rain from ' + hourClock(hours[rainAt].h);
+    if (max >= 20) return 'Rain ' + Math.round(max) + '%';
+    if (max < 0 && day0 && day0.precip != null && day0.precip >= 20) return 'Rain ' + Math.round(day0.precip) + '%';
+    return 'Dry all day';
+  }
   function liveWeather(W) {
     var now = nyWall(App.now());
-    var hours = W.hours;
-    var idx = hourIndex(hours, now);
-    var slot = hours[idx];
+    var hours = W.hours || [];
     var temp = Math.round(W.current.temp);
     var code = W.current.code;
     var iconHour = W.current.h == null ? now.h : W.current.h;
     var cond = condFromCode(code, iconHour);
     var today = wallKey(now);
-    var hi = -Infinity, lo = Infinity, anyToday = false;
-    for (var i = 0; i < hours.length; i++) {
-      if (wallKey(hours[i]) !== today) continue;
-      anyToday = true;
-      if (hours[i].temp > hi) hi = hours[i].temp;
-      if (hours[i].temp < lo) lo = hours[i].temp;
-    }
-    if (!anyToday) {
-      hi = -Infinity; lo = Infinity;
-      for (var j = 0; j < hours.length; j++) {
-        if (hours[j].temp > hi) hi = hours[j].temp;
-        if (hours[j].temp < lo) lo = hours[j].temp;
-      }
-    }
-    var rainAt = -1;
-    for (var r = idx; r < hours.length; r++) {
-      if (wallKey(hours[r]) !== today) break;
-      if (hours[r].precip >= 50) { rainAt = r; break; }
-    }
-    var summary, advice;
-    if (rainAt === idx) {
-      var stop = rainAt + 1;
-      while (stop < hours.length && wallKey(hours[stop]) === today && hours[stop].precip >= 50) stop++;
-      summary = stop < hours.length && wallKey(hours[stop]) === today
-        ? 'Rain until ' + hourClock(hours[stop].h)
-        : 'Rain through this evening';
-      advice = 'Umbrella weather';
-    } else if (rainAt > -1) {
-      summary = 'Rain from ' + hourClock(hours[rainAt].h);
-      advice = rainAdvice();
-    } else {
-      summary = temp < 55 ? 'Clear and cool' : 'Dry all day';
-      advice = temp < 55 ? 'Jacket weather' : 'Light layers';
-    }
+    var day0 = W.days && W.days.length ? W.days[0] : null;
+    var range = day0 ? { hi: Math.round(day0.hi), lo: Math.round(day0.lo) } : dayHiLo(hours, today);
+    if (!range) range = dayHiLo(hours, null) || { hi: temp, lo: temp };
     return {
       temp: temp, cond: cond, label: wxLabel(code, cond),
-      hi: Math.round(hi), lo: Math.round(lo),
-      summary: summary, advice: advice, hour: iconHour
+      hi: range.hi, lo: range.lo,
+      summary: hours.length || day0 ? precipLine(hours, now, day0) : 'Dry all day',
+      advice: temp < 55 ? 'Jacket weather' : 'Light layers',
+      hour: iconHour
     };
   }
   App.weatherNow = function () {
@@ -247,7 +248,9 @@ import { formatNyStatus } from './parse.js';
       summary = 'Rain from ' + App.fmt.hour(new Date(2000, 0, 1, rainAt));
       advice = rainAdvice();
     } else {
-      summary = W.t[h] < 12 ? 'Clear and cool' : 'Dry all day';
+      var later = -1;
+      for (var p = h; p < 24; p++) if (W.p[p] > later) later = W.p[p];
+      summary = later >= 20 ? 'Rain ' + Math.round(later) + '%' : 'Dry all day';
       advice = W.t[h] < 12 ? 'Jacket weather' : 'Light layers';
     }
     return { temp: W.t[h], cond: W.c[h], label: WX_LABELS[W.c[h]], hi: W.hi, lo: W.lo, summary: summary, advice: advice, hour: h };
@@ -273,17 +276,51 @@ import { formatNyStatus } from './parse.js';
     }
     return out;
   };
-  // Next 5 daily rows (weather.days[1..5]). Index 0 is today and stays off the strip.
-  App.forecastDays = function () {
+  // Hours still ahead today. Live rows come from weather.hours; the sample is hourly arrays.
+  App.todayHours = function () {
+    var W = D.weather, out = [], i;
+    if (W && W.live && W.hours && W.hours.length) {
+      var now = nyWall(App.now());
+      var today = wallKey(now);
+      for (i = 0; i < W.hours.length; i++) {
+        var slot = W.hours[i];
+        if (wallKey(slot) !== today || slot.h < now.h) continue;
+        out.push({
+          h: slot.h,
+          t: Math.round(slot.temp),
+          c: slot.code == null ? 'cloud' : condFromCode(slot.code, slot.h),
+          p: slot.precip == null ? null : slot.precip,
+          label: slot.h === now.h ? 'Now' : ((slot.h % 12 || 12) + (slot.h >= 12 ? 'p' : 'a'))
+        });
+      }
+      return out;
+    }
+    if (W && W.t) {
+      var h = App.now().getHours();
+      for (i = h; i < 24; i++) {
+        out.push({
+          h: i, t: W.t[i], c: W.c[i], p: W.p[i],
+          label: i === h ? 'Now' : ((i % 12 || 12) + (i >= 12 ? 'p' : 'a'))
+        });
+      }
+    }
+    return out;
+  };
+  // Daily rows. Index 0 is today. The Weather tab includes it; pass includeToday: false to skip it.
+  App.forecastDays = function (opts) {
+    opts = opts || {};
     var W = D.weather;
     if (!W || !W.days || !W.days.length) return [];
+    var start = opts.includeToday ? 0 : 1;
+    var limit = opts.limit || 5;
     var out = [];
-    for (var i = 1; i < W.days.length && out.length < 5; i++) {
+    for (var i = start; i < W.days.length && out.length < limit; i++) {
       var day = W.days[i];
       var date = new Date(day.y, day.m - 1, day.d);
+      var label = opts.includeToday && i === start && App.sameDay(date, App.now()) ? 'Today' : App.fmt.dayShort(date);
       out.push({
-        label: App.fmt.dayShort(date),
-        cond: condFromCode(day.code, 12),
+        label: label,
+        cond: day.code == null ? 'cloud' : condFromCode(day.code, 12),
         hi: Math.round(day.hi),
         lo: Math.round(day.lo),
         precip: day.precip
@@ -303,8 +340,20 @@ import { formatNyStatus } from './parse.js';
     view.show($('#view-' + name), opts || {});
     view._built = true; view._dirty = false; view._min = minuteKey();
   }
+  function featureOn(name) {
+    if (name !== 'shopping') return true;
+    return !!(window.FRAME_CONFIG && window.FRAME_CONFIG.shopping);
+  }
+  App.featureOn = featureOn;
+  function applyFeatures() {
+    App.$$('[data-feature]').forEach(function (el) {
+      if (featureOn(el.getAttribute('data-feature'))) el.removeAttribute('hidden');
+      else el.setAttribute('hidden', '');
+    });
+  }
   App.go = function (name, opts) {
     opts = opts || {};
+    if (!featureOn(name)) name = 'home';
     if (!App.views[name]) name = 'home';
     if (App.current && App.current !== name && App.views[App.current].hide) App.views[App.current].hide();
     App.$$('.view').forEach(function (v) { v.classList.toggle('is-active', v.dataset.view === name); });
@@ -313,7 +362,9 @@ import { formatNyStatus } from './parse.js';
     var view = App.views[name];
     if (!view._built || view._dirty || opts.rerender || (view.minutely && view._min !== minuteKey())) build(name, opts);
     else if (view.resume) view.resume($('#view-' + name));
-    if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+    if (location.hash !== '#' + name) {
+      history.replaceState(null, '', location.pathname + location.search + '#' + name);
+    }
   };
   // Build a hidden view and lay it out now (cached by content-visibility; no paint happens).
   function prebuild(name) {
@@ -461,6 +512,7 @@ import { formatNyStatus } from './parse.js';
 
   // ------------------------------------------------------------ boot
   App.start = function () {
+    applyFeatures();
     fit();
     window.addEventListener('resize', fit);
     // Switch tabs the instant a finger lands (pointerdown), not on release. Keyboard "clicks"
@@ -492,7 +544,7 @@ import { formatNyStatus } from './parse.js';
     el.classList.toggle('is-live', live);
     var text = 'calendar ' + cal.source;
     if (wx.source !== 'live') text += ' · weather sample';
-    if (shop.source !== 'live') text += ' · shopping sample';
+    if (App.featureOn('shopping') && shop.source !== 'live') text += ' · shopping sample';
     if (cal.updated) {
       var when = formatNyStatus(cal.updated, App.now());
       if (when) text += ' · ' + when;

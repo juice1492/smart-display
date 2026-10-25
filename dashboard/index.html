@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=1280, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#F2EEE6">
+  <meta name="theme-color" content="#4EA4E8">
   <title>Home HQ</title>
   <!-- Home HQ, adapted from Wes Bos photo-frame-dashboard (MIT). Fonts are bundled locally. -->
   <link rel="manifest" href="%BASE_URL%manifest.webmanifest">
@@ -34,14 +34,16 @@
     <nav class="rail" id="rail" aria-label="Sections">
       <button class="rail-item" data-go="home"><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Today</span></button>
       <button class="rail-item" data-go="calendar"><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Calendar</span></button>
-      <button class="rail-item" data-go="shopping"><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.8L21 8H6.5"/><circle cx="10" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg><span>Shopping</span></button>
+      <button class="rail-item" data-go="weather"><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg><span>Weather</span></button>
+      <button class="rail-item" data-go="shopping" data-feature="shopping" hidden><svg class="i" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.8L21 8H6.5"/><circle cx="10" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg><span>Shopping</span></button>
       <button class="rail-clock" id="railClock" aria-label="Clock"></button>
     </nav>
 
     <main class="views">
       <section class="view" id="view-home" data-view="home"></section>
       <section class="view" id="view-calendar" data-view="calendar"></section>
-      <section class="view" id="view-shopping" data-view="shopping"></section>
+      <section class="view" id="view-weather" data-view="weather"></section>
+      <section class="view" id="view-shopping" data-view="shopping" data-feature="shopping" hidden></section>
       <div class="banners" id="banners"></div>
     </main>
 
@@ -52,6 +54,7 @@
     <div class="night" id="night"></div>
     <div class="demo" id="demo"></div>
     <div class="frame-status" id="frameStatus"><i></i><span>calendar sample</span></div>
+    <div class="alert-layer" id="alertLayer" hidden></div>
   </div>
   </div>
 

@@ -268,6 +268,54 @@ export function eventsOverlapping(events, rangeStart, rangeEnd) {
   return out;
 }
 
+function sameLocalDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+// Dismissal memory is event id plus the start instant.
+export function alertKey(ev) {
+  if (!ev || ev.id == null || !ev.start || isNaN(ev.start.getTime())) return '';
+  return String(ev.id) + '|' + ev.start.getTime();
+}
+
+// Timed events still to start today. Past start times are dropped. all-day is ignored.
+export function upcomingTimed(events, now, limit) {
+  var n = limit == null ? 3 : limit;
+  var list = [];
+  var src = events || [];
+  for (var i = 0; i < src.length; i++) {
+    var ev = src[i];
+    if (!ev || ev.allDay || !ev.start || !ev.end) continue;
+    if (!(ev.start > now)) continue;
+    if (!sameLocalDay(ev.start, now)) continue;
+    list.push(ev);
+  }
+  list.sort(function (a, b) { return a.start - b.start || a.end - b.end; });
+  return { events: list.slice(0, n), more: list.length > n ? list.length - n : 0 };
+}
+
+// Timed events inside the lead window, or already started and not yet over. Never all-day.
+export function dueAlerts(events, now, leadMs) {
+  var lead = leadMs == null ? 30 * 60 * 1000 : leadMs;
+  var list = [];
+  var src = events || [];
+  for (var i = 0; i < src.length; i++) {
+    var ev = src[i];
+    if (!ev || ev.allDay || !ev.start || !ev.end) continue;
+    if (now >= ev.end) continue;
+    if (ev.start.getTime() - now.getTime() > lead) continue;
+    list.push(ev);
+  }
+  list.sort(function (a, b) { return a.start - b.start || a.end - b.end; });
+  return list;
+}
+
+export function countdownLabel(start, now) {
+  var ms = start.getTime() - now.getTime();
+  if (ms <= 0) return 'Now';
+  return 'in ' + Math.ceil(ms / 60000) + ' min';
+}
+
 function num(v) { return typeof v === 'number' && isFinite(v); }
 
 function parseStamp(v) {
@@ -281,6 +329,55 @@ function parseStamp(v) {
   return { y: +m[1], m: +m[2], d: +m[3], h: hh, min: mm };
 }
 
+function pushHour(hours, stamp, temp, code, precip) {
+  if (!stamp || !num(temp)) return;
+  if (precip == null) precip = 0;
+  if (!num(precip) || precip < 0 || precip > 100) return;
+  if (code != null && !num(code)) code = null;
+  hours.push({
+    y: stamp.y, m: stamp.m, d: stamp.d, h: stamp.h,
+    temp: temp, code: code == null ? null : code, precip: precip
+  });
+}
+
+// Open-Meteo parallel arrays. A bad row is skipped. Missing hourly is not an error.
+function hoursFromParallel(hourly) {
+  var hours = [];
+  if (!hourly || typeof hourly !== 'object' || Array.isArray(hourly)) return hours;
+  var times = hourly.time;
+  var temps = hourly.temperature_2m;
+  if (!Array.isArray(times) || !Array.isArray(temps)) return hours;
+  var codes = hourly.weather_code;
+  var pops = hourly.precipitation_probability;
+  if (codes != null && !Array.isArray(codes)) codes = null;
+  if (pops != null && !Array.isArray(pops)) pops = null;
+  var n = Math.min(times.length, temps.length);
+  if (codes) n = Math.min(n, codes.length);
+  if (pops) n = Math.min(n, pops.length);
+  for (var i = 0; i < n; i++) {
+    if (temps[i] == null && (!codes || codes[i] == null)) continue;
+    var precip = pops && pops[i] != null ? pops[i] : 0;
+    var code = codes ? codes[i] : null;
+    pushHour(hours, parseStamp(times[i]), temps[i], code, precip);
+  }
+  return hours;
+}
+
+// Compact rows: { time, temp, precip_prob }. weather_code is optional.
+function hoursFromRows(rows) {
+  var hours = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    var temp = row.temp != null ? row.temp : row.temperature_2m;
+    var precip = row.precip_prob != null ? row.precip_prob
+      : (row.precipitation_probability != null ? row.precipitation_probability : row.precip);
+    var code = row.weather_code != null ? row.weather_code : row.code;
+    pushHour(hours, parseStamp(row.time), temp, code, precip == null ? 0 : precip);
+  }
+  return hours;
+}
+
 export function adoptWeather(json) {
   if (!json || typeof json !== 'object' || Array.isArray(json)) return { ok: false };
   if (json.timezone != null && json.timezone !== 'America/New_York') return { ok: false };
@@ -289,30 +386,11 @@ export function adoptWeather(json) {
   if (cu.temperature_2m != null && cu.temperature_2m !== '°F') return { ok: false };
   if (hu.temperature_2m != null && hu.temperature_2m !== '°F') return { ok: false };
   var current = json.current;
-  var hourly = json.hourly;
   if (!current || typeof current !== 'object' || Array.isArray(current)) return { ok: false };
-  if (!hourly || typeof hourly !== 'object' || Array.isArray(hourly)) return { ok: false };
   if (!num(current.temperature_2m) || !num(current.weather_code)) return { ok: false };
-  var times = hourly.time;
-  var temps = hourly.temperature_2m;
-  var codes = hourly.weather_code;
-  var pops = hourly.precipitation_probability;
-  if (!Array.isArray(times) || !Array.isArray(temps) || !Array.isArray(codes)) return { ok: false };
-  if (pops != null && !Array.isArray(pops)) return { ok: false };
-  var n = times.length;
-  if (!n || temps.length !== n || codes.length !== n) return { ok: false };
-  if (pops && pops.length !== n) return { ok: false };
   var hours = [];
-  for (var i = 0; i < n; i++) {
-    var stamp = parseStamp(times[i]);
-    if (!stamp) return { ok: false };
-    if (temps[i] == null && codes[i] == null) continue;
-    if (!num(temps[i]) || !num(codes[i])) return { ok: false };
-    var precip = pops && pops[i] != null ? pops[i] : 0;
-    if (!num(precip) || precip < 0 || precip > 100) return { ok: false };
-    hours.push({ y: stamp.y, m: stamp.m, d: stamp.d, h: stamp.h, temp: temps[i], code: codes[i], precip: precip });
-  }
-  if (!hours.length) return { ok: false };
+  if (Array.isArray(json.hourly)) hours = hoursFromRows(json.hourly);
+  else if (json.hourly && typeof json.hourly === 'object') hours = hoursFromParallel(json.hourly);
   var cur = parseStamp(current.time);
   return {
     ok: true,

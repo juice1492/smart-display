@@ -284,6 +284,19 @@ window.DATA = (function () {
     return base.charAt(base.length - 1) === '/' ? base : base + '/';
   }
 
+  function frameKey() {
+    var m = /[?&]frame_k=([^&]*)/.exec(location.search || '');
+    if (!m) return '';
+    try { return decodeURIComponent(m[1].replace(/\+/g, ' ')); } catch (e) { return ''; }
+  }
+
+  function withKey(url) {
+    var key = frameKey();
+    if (!key) return url;
+    var join = url.indexOf('?') === -1 ? '?' : '&';
+    return url + join + 'frame_k=' + encodeURIComponent(key);
+  }
+
   function bust(url) {
     bustN += 1;
     var join = url.indexOf('?') === -1 ? '?' : '&';
@@ -301,7 +314,7 @@ window.DATA = (function () {
     if (ctrl) opts.signal = ctrl.signal;
     // WebView 106 can ignore cache: 'no-store' and keep the previous JSON.
     // A new query on every attempt, including the retry, forces a re-fetch.
-    return fetch(bust(url), opts).then(function (res) {
+    return fetch(bust(withKey(url)), opts).then(function (res) {
       clearTimeout(timer);
       var dateHeader = '';
       try { dateHeader = res.headers && res.headers.get('Date') || ''; } catch (e) { dateHeader = ''; }
