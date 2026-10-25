@@ -77,8 +77,7 @@ import { alertKey, dueAlerts, countdownLabel } from './parse.js';
         (ev.notes ? '<p class="alert-notes">' + App.esc(ev.notes) + '</p>' : '') +
         '</article>';
     }
-    html += '<p class="alert-hint">Tap anywhere to close</p>' +
-      '<button type="button" class="alert-dismiss">Dismiss</button></div>';
+    html += '<button type="button" class="alert-dismiss">Dismiss</button></div>';
     layer.innerHTML = html;
     layer.hidden = false;
     layer.classList.add('is-open');
