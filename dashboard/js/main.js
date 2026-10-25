@@ -8,4 +8,5 @@ import './views/home.js';
 import './views/calendar.js';
 import './views/weather.js';
 import './views/shopping.js';
+import './alert.js';
 import './diag.js';

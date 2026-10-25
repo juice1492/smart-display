@@ -4,17 +4,21 @@ A landscape kiosk for an old Android photo frame. It is built for **Android Syst
 
 The UI started from the Home HQ dashboard in [Wes Bos’s photo-frame-dashboard](https://github.com/wesbos/photo-frame-dashboard), `dashboard/` folder, commit [`0bff55e`](https://github.com/wesbos/photo-frame-dashboard/commit/0bff55ef3fb2a3bfdab05bc8e3bd0c9d69f63189). That project is MIT licensed. The copyright notice and license terms are in [`LICENSE`](LICENSE). Archivo and Instrument Serif are bundled under the SIL Open Font License; see [`dashboard/fonts/OFL.txt`](dashboard/fonts/OFL.txt).
 
-The frame never requests fonts or images from another host. Three views are on the rail:
+The frame never requests fonts or images from another host. The rail is:
 
-- **Today** — clock, date, current weather, the next five days, and today’s events
+- **Today** — the weekday in large type, the date and live time, up to three events that have not started, and the current weather
 - **Calendar** — upcoming events for the next 14 days
-- **Shopping** — the list in `shopping.json`
+- **Weather** — a five-day forecast (today included) and today’s hourly temperatures, or Morning / Afternoon / Evening / Night when the hours would be too small
 
-Chores, photos, climate, and the other original tiles are not mounted. Their view modules are still in `dashboard/js/views/` so they can be deleted without touching these three.
+Shopping is still implemented (`dashboard/js/views/shopping.js` and the `shopping.json` fetch) but hidden. Set `shopping: true` in [`dashboard/js/config.js`](dashboard/js/config.js) to put it back on the rail. Colors live in the theme block at the top of [`dashboard/css/tokens.css`](dashboard/css/tokens.css).
 
-Calendar, weather, and the shopping list come from JSON on the same origin. Each file is fetched with cookies (`credentials: 'same-origin'`), `cache: 'no-store'`, and a `?t=` query so a WebView cannot keep the previous body. The timeout is **15 seconds**, with **one retry** (that retry uses a new query). The three files refresh every **5 minutes**. The timer checks `Date.now()` about every 15 seconds, and again when the page becomes visible, so a sleeping WebView still fetches once it wakes if five minutes have passed. When a file parses, it **replaces** the built-in sample. An empty list stays empty and the screen says “No events” or “No items”. The sample is kept only when the response is missing, not JSON, or not the shape below.
+Chores, photos, climate, and the other original tiles are not mounted. Their view modules are still in `dashboard/js/views/` so they can be deleted without touching these screens.
 
-A small status line at the bottom reads `calendar live` or `calendar sample`, plus the time from the latest fetch. That time prefers `calendar.json` `generated` and is shown in **America/New_York** (so `2026-10-24T14:45:00-04:00` reads 2:45 PM). If `generated` is missing, the line uses the time the file was fetched, also in New York. Weather or shopping still on the sample are called out on that same line.
+Calendar, weather, and the shopping list come from JSON on the same origin. Each file is fetched with cookies (`credentials: 'same-origin'`), `cache: 'no-store'`, and a `?t=` query so a WebView cannot keep the previous body. If the page URL has a `frame_k` query parameter, that key is sent on every data request and is kept when the rail changes the hash. The timeout is **15 seconds**, with **one retry** (that retry uses a new query). The three files refresh every **5 minutes**. The timer checks `Date.now()` about every 15 seconds, and again when the page becomes visible, so a sleeping WebView still fetches once it wakes if five minutes have passed. When a file parses, it **replaces** the built-in sample. An empty list stays empty and the screen says “No events” or “No items”. The sample is kept only when the response is missing, not JSON, or not the shape below.
+
+A timed event opens one modal 30 minutes before it starts (all-day events never do). The modal lists every event in that window, soonest first, with the title, start time, location, notes, and a countdown (`in 12 min`, then `Now`). A tap anywhere on it dismisses every event it is showing. Those dismissals are stored in `localStorage` under `frame.dismissedAlerts`, keyed by event id and start time, so a refresh or a reload does not bring them back. A short chime plays when the modal opens or a new event joins the list. If the WebView blocks audio, the failure is ignored.
+
+A small status line at the bottom reads `calendar live` or `calendar sample`, plus the time from the latest fetch. That time prefers `calendar.json` `generated` and is shown in **America/New_York** (so `2026-10-24T14:45:00-04:00` reads 2:45 PM). If `generated` is missing, the line uses the time the file was fetched, also in New York. Weather still on the sample is called out on that same line. Shopping is called out only when that tab is enabled.
 
 If the device clock is still in a year before 2024 (the frame can boot at 1969 until NTP), “today” is taken from the server `generated` timestamp, or the HTTP `Date` header if that field is missing. A clock that is already in 2024 or later is left alone.
 
@@ -139,9 +143,30 @@ Feeds the weather on Today. This file is an [Open-Meteo](https://open-meteo.com/
 https://api.open-meteo.com/v1/forecast?latitude=LAT&longitude=LON&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&timezone=America%2FNew_York
 ```
 
-`hourly.time`, `hourly.temperature_2m`, and `hourly.weather_code` are parallel arrays. `precipitation_probability` should be the same length; `null` means 0. A timezone other than `America/New_York`, or a temperature unit other than `°F`, rejects the file and the tile keeps the sample. A full response is in [`dashboard/examples/data/weather.json`](dashboard/examples/data/weather.json).
+`current.temperature_2m` and `current.weather_code` are required. A timezone other than `America/New_York`, or a temperature unit other than `°F`, rejects the file and the tile keeps the sample. A full Open-Meteo response is in [`dashboard/examples/data/weather.json`](dashboard/examples/data/weather.json).
 
-`daily` is optional. When it is present, `time`, `temperature_2m_max`, `temperature_2m_min`, and `weather_code` are parallel arrays (index 0 is today). Today draws the next five days (indices 1–5): short weekday, an icon from `weather_code`, high and low, and the rain percent from `precipitation_probability_max` when it is 20 or more. A missing or unusable `daily` block leaves the current weather up and hides the strip. Daily temperatures in a unit other than `°F` are ignored the same way.
+Hourly data is optional. Without it, Today still shows the current conditions and Weather hides the hour strip. Either shape is accepted:
+
+Open-Meteo parallel arrays (what the feed sends today):
+
+- `hourly.time` — `YYYY-MM-DDTHH:MM` in `America/New_York`
+- `hourly.temperature_2m` — °F
+- `hourly.weather_code` — WMO code
+- `hourly.precipitation_probability` — 0–100; `null` means 0
+
+Or a list of rows:
+
+```json
+"hourly": [
+  { "time": "2026-10-25T14:00", "temp": 65, "precip_prob": 10, "weather_code": 1 }
+]
+```
+
+`time` and `temp` (or `temperature_2m`) are required on each row. `precip_prob` (or `precipitation_probability`) defaults to 0. `weather_code` is optional.
+
+`daily` is optional. When it is present, `time`, `temperature_2m_max`, `temperature_2m_min`, and `weather_code` are parallel arrays (index 0 is today). `precipitation_probability_max` is the day’s rain chance. The Weather tab draws five days starting at index 0: short weekday, an icon from `weather_code`, high and low, and the rain percent when it is 20 or more. Today’s high and low on the Today screen prefer `daily` index 0. A missing or unusable `daily` block leaves the current weather up. Daily temperatures in a unit other than `°F` are ignored the same way.
+
+Today lists at most three timed events whose start is still ahead, and drops events that have already started so later ones can take their place. If more than three remain it shows `+N more`. There is no five-day strip on Today.
 
 ### `shopping.json`
 
