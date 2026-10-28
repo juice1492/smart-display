@@ -22,7 +22,7 @@
   margin: 0;
   font-size: 148px;
   font-weight: 400;
-  line-height: .86;
+  line-height: 1.15; /* was .86: room for y/g/p descenders above the date line */
   text-align: center;
   letter-spacing: -.03em;
 }
